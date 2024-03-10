@@ -1,0 +1,63 @@
+default:
+  # services:
+  #   - name: docker:dind
+  #     alias: docker
+  # cache:
+  #   key: modules-cache
+  #   paths:
+  #     - node_modules
+# 设置变量
+variables:
+  # 镜像仓库地址
+  REGISTRY: ccr.ccs.tencentyun.com
+  # 镜像版本
+  REGISTRY_IMAGE_TAG: ccr.ccs.tencentyun.com/huozhonglu/cicd:master
+
+stages:
+  # - install
+  - build
+  - deploy
+
+# install:
+#   image: node:latest
+#   stage: install
+#   script:
+#     - npm i
+#   only:
+#     refs:
+#       - main
+#     changes:
+#       - package.json
+#   tags:
+#     - test
+
+build:
+  stage: build
+  # before_script:
+  # - echo "$DOCKER_REGISTRY_PASS" | docker login $DOCKER_REGISTRY --username $DOCKER_REGISTRY_USER --password-stdin
+
+  script:
+    - docker login -u 100028714879 -p '}!rW)Jh_5;daA3' $REGISTRY
+    - docker build -t $REGISTRY_IMAGE_TAG .
+    - docker push $REGISTRY_IMAGE_TAG
+  #   - npm run build
+  # artifacts:
+  #   paths:
+  #     - ./build/
+  only:
+    - main
+  tags:
+    - test
+
+deploy:
+  stage: deploy
+  script:
+    # - echo "啥也不干"
+    - docker login -u 100028714879 -p '}!rW)Jh_5;daA3' $REGISTRY
+    - docker stack deploy -c ./docker/docker-compose.yml ${CI_PROJECT_NAME} --with-registry-auth
+    - docker rm -v `docker ps -a -q -f status=exited`
+    - docker rmi $(docker images -f "dangling=true" -q)
+  only:
+    - main
+  tags:
+    - test
